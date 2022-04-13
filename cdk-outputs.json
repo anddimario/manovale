@@ -1,0 +1,5 @@
+{
+  "StepFunctionProcessStack": {
+    "ExportsOutputRefStateMachineProcess12C254C3E38D0955": "arn:aws:states:us-east-1:817386470555:stateMachine:ManovaleProcess"
+  }
+}
