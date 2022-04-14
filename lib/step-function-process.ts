@@ -34,30 +34,43 @@ export class StepFunctionProcessStack extends Stack {
 
     const { appName, dynamoTable } = props;
 
-    // const addDelayedDynamo = new tasks.DynamoPutItem(
-    //   this,
-    //   'taskPutItemDelayed',
-    //   {
-    //     item: {
-    //       pk: tasks.DynamoAttributeValue.fromString('job:delayed'),
-    //       sk: tasks.DynamoAttributeValue.fromString(JsonPath.stringAt('$.requestContext.requestId')),
-    //       job: tasks.DynamoAttributeValue.mapFromJsonPath('$.body'),
-    //     },
-    //     table: dynamoTable,
-    //     inputPath: '$',
-    //     resultPath: `$.Item`,
-    //   }
-    // );
+    const addRunningJobDynamo = new tasks.DynamoPutItem(
+      this,
+      'taskPutItemRunning',
+      {
+        item: {
+          pk: tasks.DynamoAttributeValue.fromString(
+            JsonPath.stringAt('$.job.queue')
+          ),
+          sk: tasks.DynamoAttributeValue.fromString(JsonPath.stringAt('$.sk')),
+          job: tasks.DynamoAttributeValue.mapFromJsonPath(
+            JsonPath.stringAt('$.job')
+          ),
+          status: tasks.DynamoAttributeValue.fromString('running'),
+        },
+        table: dynamoTable,
+        inputPath: '$',
+        resultPath: `$.Item`,
+      }
+    );
 
-    // const callStepFunctionProcess = new tasks.StepFunctionsStartExecution(this, 'ChildTask', {
-    //   stateMachine: child,
-    //   // integrationPattern: IntegrationPattern.RUN_JOB,
-    //   input: TaskInput.fromObject({
-    //     token: JsonPath.taskToken,
-    //     foo: 'bar',
-    //   }),
-    //   name: 'MyExecutionName',
-    // });
+    const incrQueueCount = new tasks.DynamoUpdateItem(this, 'IncrQueueCount', {
+      key: {
+        pk: tasks.DynamoAttributeValue.fromString('jobs:count:running'),
+        sk: tasks.DynamoAttributeValue.fromString(
+          JsonPath.stringAt('$.job.queue')
+        ),
+      },
+      table: dynamoTable,
+      expressionAttributeValues: {
+        ':val': tasks.DynamoAttributeValue.numberFromString(
+          JsonPath.stringAt('$.Item.TotalCount.N')
+        ),
+      },
+      updateExpression: 'SET TotalCount = :val + 1',
+      resultPath: `$.Item`,
+      inputPath: '$',
+    });
 
     // // Choice condition if value exists in dynamodb
     // const checkDelay = new Choice(this, 'Is it a delayed job?')
@@ -69,20 +82,19 @@ export class StepFunctionProcessStack extends Stack {
     //   .afterwards();
 
     const returnOk = new Pass(this, 'PassState', {
-        result: { value: 'ok' },
-      });
-
-    const waitForFileCreation = new Wait(this, 'Wait', {
-      time: WaitTime.duration(Duration.seconds(10)),
+      result: { value: 'ok' },
     });
-    const machineDefinition = waitForFileCreation.next(returnOk);
+
+    const machineDefinition = addRunningJobDynamo
+      .next(incrQueueCount)
+      .next(returnOk);
 
     const logGroup = new LogGroup(this, 'StepFunctionApiLogGroup', {
-        logGroupName: `${appName}Process`,
-        retention: RetentionDays.ONE_MONTH,
-        removalPolicy: RemovalPolicy.DESTROY
-      });
-  
+      logGroupName: `${appName}Process`,
+      retention: RetentionDays.ONE_MONTH,
+      removalPolicy: RemovalPolicy.DESTROY,
+    });
+
     //Create the statemachine
     this.Machine = new StateMachine(this, 'StateMachineProcess', {
       definition: machineDefinition,

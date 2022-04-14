@@ -54,7 +54,7 @@ export class LambdasStack extends Stack {
     startProcess.addEventSource(
       new DynamoEventSource(dynamoTable, {
         startingPosition: StartingPosition.TRIM_HORIZON,
-        batchSize: 5,
+        batchSize: 1,
         bisectBatchOnError: true,
         onFailure: new SqsDlq(dlqQueue),
         retryAttempts: 3,

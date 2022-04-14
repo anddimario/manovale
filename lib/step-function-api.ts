@@ -55,7 +55,7 @@ export class StepFunctionApiStack extends Stack {
       name: `${appName}Process`,
     });
 
-    // Choice condition if value exists in dynamodb
+    // Choice condition if it's a delayed job
     const checkDelay = new Choice(this, 'Is it a delayed job?')
       .when(
         Condition.isPresent('$.body.delay'),

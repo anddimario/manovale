@@ -1,5 +1,17 @@
 {
+  "StorageStack": {
+    "ExportsOutputFnGetAttAppQueueFD3F4958Arn43A3DA01": "arn:aws:sqs:us-east-1:817386470555:ManovaleDlq",
+    "ExportsOutputFnGetAttmanovaleSingleTableE6C3B881StreamArn0B2E44E6": "arn:aws:dynamodb:us-east-1:817386470555:table/Manovale/stream/2022-04-13T11:55:39.461",
+    "ExportsOutputRefmanovaleSingleTableE6C3B8810A2A4B93": "Manovale"
+  },
   "StepFunctionProcessStack": {
     "ExportsOutputRefStateMachineProcess12C254C3E38D0955": "arn:aws:states:us-east-1:817386470555:stateMachine:ManovaleProcess"
+  },
+  "StepFunctionApiStack": {
+    "ExportsOutputRefStateMachineApiB2E732FF9FD6F267": "arn:aws:states:us-east-1:817386470555:stateMachine:ManovaleApi"
+  },
+  "AppStack": {
+    "StepFunctionsRestApiEndpoint0DD66FCB": "https://qj9tgbh18d.execute-api.us-east-1.amazonaws.com/prod/",
+    "apiUrlJob": "https://qj9tgbh18d.execute-api.us-east-1.amazonaws.com/prod/"
   }
 }
