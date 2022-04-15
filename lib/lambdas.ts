@@ -7,6 +7,8 @@ import {
   Architecture,
   LayerVersion,
   StartingPosition,
+  CfnEventSourceMapping,
+  EventSourceMapping,
 } from 'aws-cdk-lib/aws-lambda';
 import {
   DynamoEventSource,
@@ -51,15 +53,48 @@ export class LambdasStack extends Stack {
 
     // Lambda events
     // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_lambda_event_sources.DynamoEventSource.html
-    startProcess.addEventSource(
-      new DynamoEventSource(dynamoTable, {
+    // const dynamodbEventSource = new DynamoEventSource(dynamoTable, {
+    //   startingPosition: StartingPosition.TRIM_HORIZON,
+    //   batchSize: 1,
+    //   bisectBatchOnError: true,
+    //   onFailure: new SqsDlq(dlqQueue),
+    //   retryAttempts: 3,
+    // })
+    // startProcess.addEventSource(dynamodbEventSource);
+    const dynamodbEventSource = new EventSourceMapping(
+      this,
+      'dynamodbEventSource',
+      {
         startingPosition: StartingPosition.TRIM_HORIZON,
         batchSize: 1,
         bisectBatchOnError: true,
         onFailure: new SqsDlq(dlqQueue),
         retryAttempts: 3,
-      })
+        target: startProcess,
+        eventSourceArn: dynamoTable.tableStreamArn,
+      }
     );
+
+    // Filter to enable lambda invoke only remove for delayed job
+    // https://dev.to/dvddpl/filter-lambda-events-from-dynamodb-stream-with-cdk-1gnm
+    const cfnSourceMapping = dynamodbEventSource.node
+      .defaultChild as CfnEventSourceMapping;
+
+    cfnSourceMapping.addPropertyOverride('FilterCriteria', {
+      Filters: [
+        {
+          Pattern: JSON.stringify({
+            // Only capture DELETE if delayed is present
+            dynamodb: {
+              OldImage: {
+                delayed: { 'exists': true },
+              },
+            },
+            eventName: ['REMOVE'],
+          }),
+        },
+      ],
+    });
 
     const accountId = Stack.of(this).account;
     const region = Stack.of(this).region;

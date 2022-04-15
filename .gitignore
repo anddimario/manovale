@@ -3,6 +3,7 @@
 *.d.ts
 node_modules
 !lambdas/**/*.js
+cdk-outputs.json
 
 # CDK asset staging directory
 .cdk.staging

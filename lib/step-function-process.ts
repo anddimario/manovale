@@ -42,10 +42,10 @@ export class StepFunctionProcessStack extends Stack {
           pk: tasks.DynamoAttributeValue.fromString(
             JsonPath.stringAt('$.job.queue')
           ),
-          sk: tasks.DynamoAttributeValue.fromString(JsonPath.stringAt('$.sk')),
-          job: tasks.DynamoAttributeValue.mapFromJsonPath(
-            JsonPath.stringAt('$.job')
+          sk: tasks.DynamoAttributeValue.fromString(
+            JsonPath.stringAt('$.job.id')
           ),
+          job: tasks.DynamoAttributeValue.mapFromJsonPath('$.job'),
           status: tasks.DynamoAttributeValue.fromString('running'),
         },
         table: dynamoTable,
@@ -62,12 +62,7 @@ export class StepFunctionProcessStack extends Stack {
         ),
       },
       table: dynamoTable,
-      expressionAttributeValues: {
-        ':val': tasks.DynamoAttributeValue.numberFromString(
-          JsonPath.stringAt('$.Item.TotalCount.N')
-        ),
-      },
-      updateExpression: 'SET TotalCount = :val + 1',
+      updateExpression: 'SET TotalCount = TotalCount + 1',
       resultPath: `$.Item`,
       inputPath: '$',
     });

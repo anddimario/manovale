@@ -48,10 +48,9 @@ export class StepFunctionApiStack extends Stack {
     const callStepFunctionProcess = new tasks.StepFunctionsStartExecution(this, 'ChildTask', {
       stateMachine: processMachine,
       // integrationPattern: IntegrationPattern.RUN_JOB,
-      // input: TaskInput.fromObject({
-      //   token: JsonPath.taskToken,
-      //   foo: 'bar',
-      // }),
+      input: TaskInput.fromObject({
+        job: JsonPath.stringAt('$.body'),
+      }),
       name: `${appName}Process`,
     });
 
