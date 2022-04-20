@@ -9,4 +9,4 @@ cdk-outputs.json
 .cdk.staging
 cdk.out
 
-diagram*
+diagram.dot

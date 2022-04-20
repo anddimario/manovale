@@ -28,12 +28,12 @@ export class StorageStack extends Stack {
 
     const { appName } = props;
 
-    this.dlqQueue = new sqs.Queue(this, 'AppQueue', {
+    this.dlqQueue = new sqs.Queue(this, `${appName}Queue`, {
       queueName: `${appName}Dlq`,
       visibilityTimeout: Duration.seconds(300),
     });
 
-    this.dynamoTable = new Table(this, 'manovaleSingleTable', {
+    this.dynamoTable = new Table(this, `${appName}SingleTable`, {
       tableName: appName,
       partitionKey: {
         name: 'pk',

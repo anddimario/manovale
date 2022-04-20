@@ -51,6 +51,41 @@ export class LambdasStack extends Stack {
       handler: 'index.handler',
     });
 
+    const accountId = Stack.of(this).account;
+    const region = Stack.of(this).region;
+    // 👇 create a policy statement
+    const listMachinesPermission = new PolicyStatement({
+      actions: ['states:ListStateMachines'],
+      resources: [`arn:aws:states:${region}:${accountId}:stateMachine:*`],
+    });
+    const startProcessPermission = new PolicyStatement({
+      actions: ['states:StartExecution'],
+      resources: [processMachine.stateMachineArn],
+    });
+    const streamDynamoPermission = new PolicyStatement({
+      actions: [
+        'dynamodb:GetRecords',
+        'dynamodb:GetShardIterator',
+        'dynamodb:DescribeStream',
+        'dynamodb:ListShards',
+        'dynamodb:ListStreams',
+      ],
+      resources: [
+        `arn:aws:dynamodb:${region}:${accountId}:table/${dynamoTable.tableName}/stream/*`,
+      ],
+    });
+
+    // 👇 add the policy to the Function's role
+    startProcess.role?.attachInlinePolicy(
+      new Policy(this, 'startProcessMachine', {
+        statements: [
+          listMachinesPermission,
+          startProcessPermission,
+          streamDynamoPermission,
+        ],
+      })
+    );
+
     // Lambda events
     // https://docs.aws.amazon.com/cdk/api/v2/docs/aws-cdk-lib.aws_lambda_event_sources.DynamoEventSource.html
     // const dynamodbEventSource = new DynamoEventSource(dynamoTable, {
@@ -84,35 +119,11 @@ export class LambdasStack extends Stack {
       Filters: [
         {
           Pattern: JSON.stringify({
-            // Only capture DELETE if delayed is present
-            dynamodb: {
-              OldImage: {
-                delayed: { 'exists': true },
-              },
-            },
             eventName: ['REMOVE'],
+            dynamodb: { OldImage: { delay: { N: [{ exists: true }] } } },
           }),
         },
       ],
     });
-
-    const accountId = Stack.of(this).account;
-    const region = Stack.of(this).region;
-    // 👇 create a policy statement
-    const listMachinesPermission = new PolicyStatement({
-      actions: ['states:ListStateMachines'],
-      resources: [`arn:aws:states:${region}:${accountId}:stateMachine:*`],
-    });
-    const startProcessPermission = new PolicyStatement({
-      actions: ['states:StartExecution'],
-      resources: [processMachine.stateMachineArn],
-    });
-
-    // 👇 add the policy to the Function's role
-    startProcess.role?.attachInlinePolicy(
-      new Policy(this, 'startProcessMachine', {
-        statements: [listMachinesPermission, startProcessPermission],
-      })
-    );
   }
 }

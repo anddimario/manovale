@@ -16,6 +16,7 @@ import { Construct } from 'constructs';
 import * as tasks from 'aws-cdk-lib/aws-stepfunctions-tasks';
 import { Table } from 'aws-cdk-lib/aws-dynamodb';
 import { LogGroup, RetentionDays } from 'aws-cdk-lib/aws-logs';
+import { DynamoAttributeValue } from 'aws-cdk-lib/aws-stepfunctions-tasks';
 
 interface StepFunctionProcessStackProps extends StackProps {
   appName: string;
@@ -62,7 +63,10 @@ export class StepFunctionProcessStack extends Stack {
         ),
       },
       table: dynamoTable,
-      updateExpression: 'SET TotalCount = TotalCount + 1',
+      expressionAttributeValues: {
+        ':val': tasks.DynamoAttributeValue.fromNumber(1)
+      },
+      updateExpression: 'ADD TotalCount :val',
       resultPath: `$.Item`,
       inputPath: '$',
     });
@@ -91,7 +95,7 @@ export class StepFunctionProcessStack extends Stack {
     });
 
     //Create the statemachine
-    this.Machine = new StateMachine(this, 'StateMachineProcess', {
+    this.Machine = new StateMachine(this, `${appName}StateMachineProcess`, {
       definition: machineDefinition,
       stateMachineName: `${appName}Process`,
       timeout: Duration.minutes(5),
